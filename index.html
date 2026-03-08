@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>AI Task Dashboard</title>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap');
+
+    :root {
+        --primary: #6366f1;
+        --secondary: #4ade80;
+        --bg: #0f172a;
+        --glass: rgba(255,255,255,0.05);
+        --accent: #fbbf24;
+    }
+
+    body {
+        font-family: 'Assistant', sans-serif;
+        margin: 0;
+        color: #f8fafc;
+        background: var(--bg);
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .dashboard {
+        display: grid;
+        grid-template-columns: 450px 1fr;
+        width: 100%;
+        gap: 20px;
+        padding: 20px;
+    }
+
+    /* Chat Card */
+    .chat-card {
+        display: flex;
+        flex-direction: column;
+        background: var(--glass);
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,0.1);
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .chat-header {
+        padding: 20px;
+        background: var(--primary);
+        font-weight: bold;
+        text-align: center;
+        font-size: 1.2rem;
+        letter-spacing: 1px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    #chat-window {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.05));
+    }
+
+    .msg {
+        padding: 12px 16px;
+        border-radius: 16px;
+        max-width: 80%;
+        line-height: 1.5;
+        animation: fadeIn 0.3s ease;
+        word-wrap: break-word;
+    }
+
+    .bot { background: #334155; align-self: flex-start; }
+    .user { background: var(--primary); align-self: flex-end; color: white; }
+
+    .input-area {
+        padding: 15px 20px;
+        display: flex;
+        gap: 10px;
+        background: rgba(0,0,0,0.2);
+        border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    input {
+        flex: 1;
+        background: #1e293b;
+        border: none;
+        padding: 12px 16px;
+        border-radius: 12px;
+        color: white;
+        outline: none;
+        font-size: 0.95rem;
+        transition: 0.2s;
+    }
+
+    input:focus { background: #273449; }
+
+    button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    button:hover { background: #4f46e5; }
+
+    /* Task Grid */
+    .tasks-section {
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .tasks-section h1 {
+        margin-bottom: 20px;
+        font-size: 1.8rem;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 15px;
+    }
+
+    .task-card {
+        background: var(--glass);
+        padding: 20px;
+        border-radius: 20px;
+        border-right: 4px solid var(--primary);
+        transition: 0.3s;
+        animation: slideUp 0.4s ease;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+
+    .task-card:hover {
+        transform: translateY(-5px);
+        background: rgba(255,255,255,0.1);
+    }
+
+    .type-tag {
+        font-size: 0.7rem;
+        background: var(--primary);
+        padding: 3px 10px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        display: inline-block;
+        font-weight: 600;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+    <div class="chat-card">
+        <div class="chat-header">סוכן משימות AI</div>
+        <div id="chat-window"></div>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="בקשי מהסוכן משהו..." onkeypress="if(event.key==='Enter') send()">
+            <button onclick="send()">שלח</button>
+        </div>
+    </div>
+
+    <div class="tasks-section">
+        <h1>לוח המשימות שלי <span id="count" style="opacity:0.5; font-size:1.2rem;"></span></h1>
+        <div class="grid" id="tasks-container"></div>
+    </div>
+</div>
+
+<script>
+    const API = "http://127.0.0.1:8000";
+    window.onload = refresh;
+
+    async function send() {
+        const input = document.getElementById('user-input');
+        const text = input.value; if(!text) return;
+        addMsg(text, 'user'); input.value = '';
+
+        try {
+            const res = await fetch(`${API}/chat`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: text})
+            });
+            const data = await res.json();
+            addMsg(data.reply, 'bot');
+            refresh();
+        } catch(e) { addMsg("שגיאה בחיבור לשרת", 'bot'); }
+    }
+
+    async function refresh() {
+        const res = await fetch(`${API}/tasks`);
+        const tasks = await res.json();
+        document.getElementById('count').innerText = `(${tasks.length})`;
+        document.getElementById('tasks-container').innerHTML = tasks.map(t => `
+            <div class="task-card">
+                <span class="type-tag">${t.type}</span>
+                <div style="font-weight:bold; font-size:1.1rem; margin-bottom:5px;">${t.title}</div>
+                <div style="font-size:0.85rem; opacity:0.7; margin-bottom:10px;">${t.description || 'אין תיאור'}</div>
+                <div style="font-size:0.75rem; display:flex; justify-content:space-between; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+                    <span>🆔 ${t.id}</span>
+                    <span>${t.status === 'completed' ? '✅ בוצע' : '⏳ בטיפול'}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function addMsg(text, side) {
+        const win = document.getElementById('chat-window');
+        const div = document.createElement('div');
+        div.className = `msg ${side}`;
+        div.innerText = text;
+        win.appendChild(div);
+        win.scrollTop = win.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
