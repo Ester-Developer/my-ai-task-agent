@@ -1,4 +1,7 @@
 # 🤖 AI Task Management Agent
+<img width="1916" height="907" alt="main-page2" src="https://github.com/user-attachments/assets/904736f4-c1ac-46e7-8664-e90422da00fe" />
+<img width="1918" height="907" alt="main-page" src="https://github.com/user-attachments/assets/6eb6eeff-0eb5-4d36-bdbb-e632e08a00f4" />
+
 
 סוכן בינה מלאכותית חכם לניהול משימות המבוסס על **Groq (Llama 3.3)** ו-**FastAPI**.  
 הסוכן יודע לקבל הוראות בשפה חופשית, לבצע פעולות בבסיס הנתונים (CRUD) ולוודא שהמשתמש מספק את כל הפרטים הנדרשים.
